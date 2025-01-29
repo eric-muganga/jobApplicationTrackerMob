@@ -1,53 +1,63 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  Alert,
+} from 'react-native';
 import { useDispatch } from 'react-redux';
+import { format } from 'date-fns';
 import { AppDispatch } from '../../store/store';
 import { deleteApplication, JobApplication } from '../../store/ApplicationsSlice';
 
 interface ApplicationDetailProps {
   application: JobApplication;
   onClose: () => void;
+  visible: boolean;
+  onEditApplication: (application: JobApplication) => void;
 }
 
-const ApplicationDetail: React.FC<ApplicationDetailProps> = ({ application, onClose }) => {
+const ApplicationDetail: React.FC<ApplicationDetailProps> = ({
+                                                               application,
+                                                               onClose,
+                                                               visible,
+                                                               onEditApplication,
+                                                             }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const modalRef = useRef<View>(null);
 
-  // Function to format jobDescription with line breaks
+  // Format text with line breaks
   const formatText = (text: string | undefined) =>
     text?.split('\n').map((line, index) => (
-      <Text key={index} style={styles.line}>
+      <Text key={index} style={styles.descriptionLine}>
         {line}
       </Text>
     ));
 
-  // Handle edit click (you can navigate to the edit screen if needed)
   const handleEditClick = () => {
-    Alert.alert('Edit Application', 'Navigate to edit screen (not implemented yet).');
+    onClose();
+    onEditApplication(application);
   };
 
-  // Handle delete click
   const handleDeleteClick = async () => {
-    const confirmed = Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this application?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await dispatch(deleteApplication({ id: application.id }));
-              onClose(); // Close the modal after deletion
-            } catch (error) {
-              console.error('Failed to delete application', error);
-              Alert.alert('Error', 'Failed to delete application.');
-            }
-          },
+    Alert.alert('Confirm Delete', 'Are you sure you want to delete this application?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await dispatch(deleteApplication(application.id));
+            onClose();
+          } catch (error) {
+            console.error('Failed to delete application', error);
+            Alert.alert('Error', 'Failed to delete application.');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (!application) {
@@ -55,76 +65,85 @@ const ApplicationDetail: React.FC<ApplicationDetailProps> = ({ application, onCl
   }
 
   return (
-    <View style={styles.overlay}>
-      <View style={styles.modal} ref={modalRef}>
-        <ScrollView>
-          {/* Header Section */}
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.title}>{application.jobTitle}</Text>
-              <Text style={styles.subtitle}>{application.company}</Text>
-            </View>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.closeButton}>X</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.divider} />
-
-          {/* Content Section */}
-          <View style={styles.content}>
-            <Text>
-              <Text style={styles.label}>Location:</Text> {application.location || 'N/A'}
-            </Text>
-            <Text>
-              <Text style={styles.label}>Status:</Text>{' '}
-              <Text style={[styles.status, styles[`status${application.status}`]]}>
-                {application.status}
-              </Text>
-            </Text>
-            {application.applicationDate && (
-              <Text>
-                <Text style={styles.label}>Applied On:</Text> {application.applicationDate}
-              </Text>
-            )}
-            {application.contractType && (
-              <Text>
-                <Text style={styles.label}>Contract Type:</Text> {application.contractType}
-              </Text>
-            )}
-            {application.jobDescription && (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.modal}>
+          <ScrollView>
+            {/* Header Section */}
+            <View style={styles.header}>
               <View>
-                <Text style={styles.label}>Job Description:</Text>
-                <View style={styles.descriptionContainer}>{formatText(application.jobDescription)}</View>
+                <Text style={styles.title}>{application.jobTitle}</Text>
+                <Text style={styles.subtitle}>{application.company}</Text>
               </View>
-            )}
-            {application.notes && (
-              <Text>
-                <Text style={styles.label}>Notes:</Text> {application.notes}
-              </Text>
-            )}
-            {application.financialInformation && (
-              <Text>
-                <Text style={styles.label}>Financial Information:</Text>{' '}
-                {application.financialInformation.salary}{' '}
-                {application.financialInformation.currency} (
-                {application.financialInformation.salaryType}) -{' '}
-                {application.financialInformation.typeOfEmployment}
-              </Text>
-            )}
-          </View>
+              <TouchableOpacity onPress={onClose}>
+                <Text style={styles.closeButton}>X</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.divider} />
 
-          {/* Buttons Section */}
-          <View style={styles.buttons}>
-            <TouchableOpacity onPress={handleEditClick} style={styles.editButton}>
-              <Text style={styles.buttonText}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleDeleteClick} style={styles.deleteButton}>
-              <Text style={styles.buttonText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+            {/* Content Section */}
+            <View style={styles.content}>
+              <Text>
+                <Text style={styles.label}>Location:</Text> {application.location || 'N/A'}
+              </Text>
+              <Text>
+                <Text style={styles.label}>Status:</Text>{' '}
+                <Text style={[styles.status, styles[`status${application.status}`]]}>
+                  {application.status}
+                </Text>
+              </Text>
+              {application.applicationDate && (
+                <Text>
+                  <Text style={styles.label}>Applied On:</Text> {format(new Date(application.applicationDate), 'PPpp')}
+                </Text>
+              )}
+              {application.contractType && (
+                <Text>
+                  <Text style={styles.label}>Contract Type:</Text> {application.contractType}
+                </Text>
+              )}
+              {application.jobDescription && (
+                <View>
+                  <Text style={styles.label}>Job Description:</Text>
+                  <View style={styles.descriptionContainer}>
+                    {formatText(application.jobDescription)}
+                  </View>
+                </View>
+              )}
+              {application.notes && (
+                <Text>
+                  <Text style={styles.label}>Notes:</Text> {application.notes}
+                </Text>
+              )}
+              {application.financialInformation && (
+                <Text>
+                  <Text style={styles.label}>Financial Information:</Text>{' '}
+                  {application.financialInformation.salary}{' '}
+                  {application.financialInformation.currency} (
+                  {application.financialInformation.salaryType}) -{' '}
+                  {application.financialInformation.typeOfEmployment}
+                </Text>
+              )}
+            </View>
+
+            {/* Buttons Section */}
+            <View style={styles.buttons}>
+              <TouchableOpacity onPress={handleEditClick} style={styles.editButton}>
+                <Text style={styles.buttonText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDeleteClick} style={styles.deleteButton}>
+                <Text style={styles.buttonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
       </View>
-    </View>
+    </Modal>
   );
 };
 
@@ -194,7 +213,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  line: {
+  descriptionLine: {
     marginBottom: 4,
     color: '#333',
   },
