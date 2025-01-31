@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import KanbanCard from './KanbanCard';
+import {JobApplication} from '../../store/ApplicationsSlice.ts';
 
 interface ColumnProps {
   name: string;
@@ -12,11 +13,12 @@ interface ColumnProps {
     jobTitle: string;
     status: string;
   }>;
+  onEditApplication: (application: JobApplication) => void;
 }
 
-const Column: React.FC<ColumnProps> = ({ name, count, applications }) => {
+const Column: React.FC<ColumnProps> = ({ name, count, applications, onEditApplication }) => {
 
-  console.log("Column component" ,count, name, applications);
+  console.log('Column component' ,count, name, applications);
   return (
     <View style={styles.column}>
       <Text style={styles.columnHeader}>{name}</Text>
@@ -33,6 +35,7 @@ const Column: React.FC<ColumnProps> = ({ name, count, applications }) => {
             stage={item.status}
             statusId={item.statusId}
             application={item}
+            onEditApplication={onEditApplication}
           />
         )}
         keyExtractor={(item) => item.id}
