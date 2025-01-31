@@ -1,4 +1,4 @@
-import {ActivityIndicator, ScrollView, View, Text} from 'react-native';
+import {ActivityIndicator, ScrollView, View, Text, StyleSheet} from 'react-native';
 import React, { useEffect} from 'react';
 import MonthlyApplicationsChart from '../components/dashboard/MonthlyApplicationsChart.tsx';
 import {
@@ -11,6 +11,7 @@ import {
 import { useSelector, useDispatch} from 'react-redux';
 import StatusPieChart from '../components/dashboard/StatusPieChart.tsx';
 import {AppDispatch} from '../store/store.ts';
+import FloatingActionButton from '../components/FloatingActionButton.tsx';
 
 
 const DashboardView = (): React.JSX.Element => {
@@ -44,6 +45,7 @@ const DashboardView = (): React.JSX.Element => {
   }
 
   return (
+    <View style={styles.container}>
     <ScrollView contentContainerStyle={{ padding: 20 }}>
       <View style={{ marginBottom: 20 }}>
         <MonthlyApplicationsChart data={monthlyApplications} />
@@ -52,7 +54,16 @@ const DashboardView = (): React.JSX.Element => {
         <StatusPieChart data={stats} />
       </View>
     </ScrollView>
+      <FloatingActionButton />
+    </View>
   );
 };
 
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+});
 export default DashboardView;
