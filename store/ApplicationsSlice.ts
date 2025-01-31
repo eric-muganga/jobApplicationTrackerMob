@@ -1,7 +1,8 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from './store';
 import apiClient from '../api/apiService.ts';
-
+import { fetchStatusCounts, fetchMonthlyApplications } from './dashboardSlice';
+import axios from 'axios';
 
 export type Stage =
   | 'Wishlist'
@@ -18,6 +19,15 @@ export const STAGES: Stage[] = [
   'Offer',
   'Rejected',
 ];
+
+// Columns shape: each stage holds an array of application IDs
+interface Columns {
+  Wishlist: string[];
+  Applied: string[];
+  Interviewing: string[];
+  Offer: string[];
+  Rejected: string[];
+}
 
 // Financial info model
 export interface FinancialInformation {
@@ -36,10 +46,10 @@ export interface JobApplication {
   status: Stage;
   statusId: string;
   contractTypeId: string;
-  applicationDate?: string;
+  applicationDate?: string | null;
   interviewDate?: string | null;
   notes: string;
-  contractType: string;
+  contractType?: string;
   jobDescription?: string;
   createdAt: string;
   financialInformation: FinancialInformation;
@@ -52,13 +62,22 @@ export interface NewApplicationPayload {
   jobTitle: string;
   statusId: string; // Must be a valid GUID
   contractTypeId: string; // Must be a valid GUID
-  applicationDate?: string;
+  applicationDate?: string | null;
   interviewDate?: string | null;
   notes: string;
   jobDescription?: string;
   createdAt: string;
   financialInformation: FinancialInformation | null;
   location?: string;
+}
+
+// ServiceResponse shape from your backend
+export interface ServiceResponse<T> {
+  data: T;
+  message: string;
+  statusCode: number;
+  success: boolean;
+  errorMessages?: string[] | null;
 }
 
 // Columns shape: each stage holds an array of application IDs
@@ -70,23 +89,6 @@ interface Columns {
   Rejected: string[];
 }
 
-// Redux slice state
-export interface ApplicationsState {
-  items: Record<string, JobApplication>;
-  columns: Columns;
-  loading: boolean;
-  error: string | null;
-}
-
-// ServiceResponse shape from your backend
-interface ServiceResponse<T> {
-  data: T;
-  message: string;
-  statusCode: number;
-  success: boolean;
-  errorMessages?: string[] | null;
-}
-
 // Start with empty arrays
 const initialColumns: Columns = {
   Wishlist: [],
@@ -96,20 +98,25 @@ const initialColumns: Columns = {
   Rejected: [],
 };
 
-// Demo applications array (if you have no actual data initially)
-const DEMO_APPLICATIONS: JobApplication[] = [];
+// Redux slice state
+export interface ApplicationsState {
+  items: Record<string, JobApplication>;
+  columns: Columns;
+  loading: boolean;
+  error: string | null;
+}
 
 // Helper to build initial store state from an array of applications
-function buildInitialDemoState(
+function buildInitialState(
   applications: JobApplication[]
 ): ApplicationsState {
   const newItems: Record<string, JobApplication> = {};
   const newColumns: Columns = {
-    Wishlist: [...initialColumns.Wishlist],
-      Applied: [...initialColumns.Applied],
-      Interviewing: [...initialColumns.Interviewing],
-      Offer: [...initialColumns.Offer],
-      Rejected: [...initialColumns.Rejected],
+    Wishlist: [],
+    Applied: [],
+    Interviewing: [],
+    Offer: [],
+    Rejected: [],
   };
 
   for (const app of applications) {
@@ -130,60 +137,22 @@ function buildInitialDemoState(
 }
 
 // Initial state
-const initialState: ApplicationsState =
-  buildInitialDemoState(DEMO_APPLICATIONS);
+const initialState: ApplicationsState = buildInitialState([]);
 
 // Thunk: fetch applications from your API
 export const fetchApplications = createAsyncThunk(
   'jobApplications/fetchApplications',
-  async () => {
-    const response = await apiClient.get<ServiceResponse<JobApplication[]>>(
-      '/JobApplication'
-    );
-    // The server returns { data: [...], message: "...", statusCode: ..., success: ... }
-    // We only need the array of JobApplication
-    console.log(response.data);
-    return response.data.data;
-  }
-);
-
-//thunk: update application
-export const updateApplications = createAsyncThunk(
-  'jobApplications/update',
-  async ({ applicationToUpdate }: { applicationToUpdate: JobApplication }) => {
-    const response = await apiClient.put<ServiceResponse<JobApplication>>(
-      '/JobApplication',
-      applicationToUpdate
-    );
-    console.log(response.data);
-    return response.data.data;
-  }
-);
-
-// thunk: delete Application
-export const deleteApplication = createAsyncThunk(
-  'jobApplications/delete',
-  async ({ id }: { id: string }) => {
-    const response = await apiClient.delete<
-      ServiceResponse<JobApplication>
-    >(`/JobApplication/${id}`);
-
-    console.log(response.data);
-    return response.data.data;
-  }
-);
-
-// Thunk: update application status
-export const updateApplicationStatus = createAsyncThunk(
-  'jobApplications/updateStatus',
-  async ({ id, statusId }: { id: string; statusId: string }) => {
+  async (_, { dispatch, rejectWithValue }) => {
     try {
-      const response = await apiClient.patch<ServiceResponse<JobApplication>>(
-        `/JobApplication/${id}/status/${statusId}`
-      );
+      const response = await apiClient.get<ServiceResponse<JobApplication[]>>('/JobApplication');
+      dispatch(fetchStatusCounts());
+      dispatch(fetchMonthlyApplications());
       return response.data.data;
-    } catch (error: unknown) {
-      console.error('Failed to update status:', error.response || error.message);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.message) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('Failed to fetch applications');
     }
   }
 );
@@ -191,63 +160,104 @@ export const updateApplicationStatus = createAsyncThunk(
 // Thunk: create a new job application
 export const createApplication = createAsyncThunk(
   'jobApplications/createApplication',
-  async (newApplication: NewApplicationPayload) => {
-    const response = await apiClient.post<ServiceResponse<JobApplication>>(
-      '/JobApplication',
-      newApplication
-    );
-    // The server returns the entire ServiceResponse, but we only want the job application
-    return response.data.data;
+  async (newApplication: NewApplicationPayload, { dispatch, rejectWithValue }) => {
+    try {
+      const response = await apiClient.post<ServiceResponse<JobApplication>>('/JobApplication', newApplication);
+      dispatch(fetchStatusCounts());
+      dispatch(fetchMonthlyApplications());
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.message) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('Failed to create application');
+    }
   }
 );
 
-// The slice
+// Thunk: update application status
+export const updateApplicationStatus = createAsyncThunk(
+  'jobApplications/updateStatus',
+  async ({ id, statusId }: { id: string; statusId: string }, { dispatch, rejectWithValue }) => {
+    try {
+      const response = await apiClient.patch<ServiceResponse<JobApplication>>(
+        `/JobApplication/${id}/status/${statusId}`
+      );
+      dispatch(fetchStatusCounts());
+      dispatch(fetchMonthlyApplications());
+      return response.data.data;
+    } catch (error: unknown) {
+      return rejectWithValue('Failed to fetch applications');
+    }
+  }
+);
+
+// Thunk: update an application
+export const updateApplications = createAsyncThunk(
+  'jobApplications/updateApplications',
+  async (
+    { applicationToUpdate }: { applicationToUpdate: JobApplication },
+    { dispatch, rejectWithValue }
+  ) => {
+    console.log('Application to update:', JSON.stringify(applicationToUpdate, null, 2));
+
+    if (!applicationToUpdate.contractTypeId || applicationToUpdate.contractTypeId === '') {
+      return rejectWithValue('Invalid contractTypeId');
+    }
+
+    try {
+      const response = await apiClient.put<ServiceResponse<JobApplication>>('/JobApplication', applicationToUpdate);
+      console.log('Update response:', response.data);
+      dispatch(fetchStatusCounts());
+      dispatch(fetchMonthlyApplications());
+      if (!response.data.success) {
+        return rejectWithValue(response.data.errorMessages);
+      }
+
+      // ✅ Dispatch fetch to update store after update
+      dispatch(fetchApplications()); // Make sure this fetches all applications again
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.message) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('Failed to update application');
+    }
+  }
+);
+
+// Thunk: delete an application
+export const deleteApplication = createAsyncThunk(
+  'jobApplications/deleteApplication',
+  async (id: string, { dispatch, rejectWithValue }) => {
+    try {
+      const response = await apiClient.delete<
+        ServiceResponse<JobApplication>
+      >(`/JobApplication/${id}`);
+
+      if (!response.data.success) {
+        return rejectWithValue(response.data.errorMessages);
+      }
+
+      // ✅ Dispatch an action to refetch job applications after deletion
+      dispatch(fetchApplications());
+      dispatch(fetchStatusCounts());
+      dispatch(fetchMonthlyApplications());
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.message) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('Failed to delete application');
+    }
+  }
+);
+
+// Slice definition
 const jobApplicationsSlice = createSlice({
   name: 'jobApplications',
   initialState,
-  reducers: {
-    // Reorder items within the same column
-    reorderColumn(
-      state,
-      action: PayloadAction<{
-        column: Stage;
-        reorderedItems: string[];
-      }>
-    ) {
-      const { column, reorderedItems } = action.payload;
-      state.columns[column] = reorderedItems;
-    },
-    // Move item across columns
-    moveItem(
-      state,
-      action: PayloadAction<{
-        itemId: string;
-        sourceColumn: Stage;
-        destColumn: Stage;
-      }>
-    ) {
-      const { itemId, sourceColumn, destColumn } = action.payload;
-      // remove from source
-      const sourceItems = state.columns[sourceColumn];
-      const index = sourceItems.indexOf(itemId);
-      if (index !== -1) {
-        sourceItems.splice(index, 1);
-      }
-      // add to destination
-      state.columns[destColumn].push(itemId);
-
-      // update the app's status
-      if (state.items[itemId]) {
-        state.items[itemId].status = destColumn;
-      }
-    },
-    // Add a new application directly (used if you want to insert it without an API call)
-    addApplication(state, action: PayloadAction<JobApplication>) {
-      const newApp = action.payload;
-      state.items[newApp.id] = newApp;
-      state.columns[newApp.status].push(newApp.id);
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       // fetchApplications
@@ -292,6 +302,12 @@ const jobApplicationsSlice = createSlice({
       .addCase(updateApplicationStatus.fulfilled, (state, action) => {
         // If the backend confirms the update, you can apply any final changes:
         const updatedApplication = action.payload; // Updated JobApplication from backend
+
+        if (!updatedApplication || !updatedApplication.id || !updatedApplication.status) {
+          console.warn('Invalid payload for updateApplicationStatus:', updatedApplication);
+          return;
+        }
+
         const { id, status } = updatedApplication;
 
         // Update the item's status
@@ -321,7 +337,7 @@ const jobApplicationsSlice = createSlice({
         state.error = null;
       })
       .addCase(createApplication.fulfilled, (state, action) => {
-        const newApp = action.payload; // single JobApplication
+        const newApp: JobApplication = action.payload; // single JobApplication
         state.loading = false;
         // Insert the new job application in store
         state.items[newApp.id] = newApp;
@@ -349,8 +365,5 @@ const jobApplicationsSlice = createSlice({
   },
 });
 
-export const { reorderColumn, moveItem, addApplication } =
-  jobApplicationsSlice.actions;
 export const selectApplications = (state: RootState) => state.jobApplications;
-
 export default jobApplicationsSlice.reducer;
