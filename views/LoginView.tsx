@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
-import { Text, View, StyleSheet, TextInput, Button, Alert } from 'react-native';
+import { Text, View, StyleSheet, TextInput, Button, Alert, TouchableOpacity } from 'react-native';
 import { useDispatch } from 'react-redux';
-import {loginUser} from '../store/authSlice.ts';
-import {AppDispatch} from '../store/store.ts';
+import { loginUser } from '../store/authSlice.ts';
+import { AppDispatch } from '../store/store.ts';
+import { useNavigation } from '@react-navigation/native';
 
 const LoginView = (): React.JSX.Element => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
 
   const dispatch: AppDispatch = useDispatch();
+  const navigation = useNavigation();
 
   const handleLogin = () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in both email and password.');
       return;
     }
-    dispatch(loginUser({email, password}));
+    dispatch(loginUser({ email, password }));
   };
 
   return (
@@ -42,9 +44,11 @@ const LoginView = (): React.JSX.Element => {
 
       <Button title="Login" onPress={handleLogin} />
 
-      <Text style={styles.note}>
-        Don't have an account? <Text style={styles.link}>Sign up</Text>
-      </Text>
+      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+        <Text style={styles.note}>
+          Don't have an account? <Text style={styles.link}>Sign up</Text>
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
