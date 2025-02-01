@@ -3,7 +3,7 @@ import {View, Text, StyleSheet, Platform, Alert, TouchableOpacity} from 'react-n
 import {Picker} from '@react-native-picker/picker';
 import {useDispatch} from 'react-redux';
 import {AppDispatch} from '../../store/store.ts';
-import {updateApplicationStatus} from '../../store/ApplicationsSlice.ts';
+import {JobApplication, updateApplicationStatus} from '../../store/ApplicationsSlice.ts';
 import ApplicationDetail from './ApplicationDetail.tsx';
 
 interface KanbanCardProps {
@@ -12,8 +12,8 @@ interface KanbanCardProps {
   position: string;
   stage: string;
   statusId: string;
-  onPress?: (id: string) => void;
   application: any;
+  onEditApplication: (application: JobApplication) => void;
 }
 
 const STAGE_COLORS: Record<string, string> = {
@@ -38,8 +38,8 @@ const KanbanCard: React.FC<KanbanCardProps> = ({
                                                  position,
                                                  stage,
                                                  statusId,
-                                                 onPress,
                                                  application,
+                                                 onEditApplication,
                                                }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -61,32 +61,36 @@ const KanbanCard: React.FC<KanbanCardProps> = ({
   return (
     <View>
       <TouchableOpacity
-        style={[styles.card, { borderLeftColor: STAGE_COLORS[stage] }]}
-        onPress={handleCardPress}
-      >
-      <View style={styles.cardContent}>
-        <Text style={styles.position}>{position}</Text>
-        <Text style={styles.company}>{company}</Text>
-        <View style={styles.dropdownContainer}>
-          <Picker
-            selectedValue={statusId}
-            onValueChange={(itemValue) => handleStatusChange(itemValue)}
-            mode={Platform.OS === 'ios' ? 'dropdown' : 'dialog'}
-            style={styles.picker}
-          >
-            {STATUS_OPTIONS.map((option) => (
-              <Picker.Item key={option.value} label={option.label} value={option.value} />
-            ))}
-          </Picker>
+        style={[styles.card, {borderLeftColor: STAGE_COLORS[stage]}]}
+        onPress={handleCardPress}>
+        <View style={styles.cardContent}>
+          <Text style={styles.position}>{position}</Text>
+          <Text style={styles.company}>{company}</Text>
+          <View style={styles.dropdownContainer}>
+            <Picker
+              selectedValue={statusId}
+              onValueChange={itemValue => handleStatusChange(itemValue)}
+              mode={Platform.OS === 'ios' ? 'dropdown' : 'dialog'}
+              style={styles.picker}>
+              {STATUS_OPTIONS.map(option => (
+                <Picker.Item
+                  key={option.value}
+                  label={option.label}
+                  value={option.value}
+                />
+              ))}
+            </Picker>
+          </View>
         </View>
-      </View>
-        </TouchableOpacity>
+      </TouchableOpacity>
 
       {/* Modal */}
       {isModalVisible && (
         <ApplicationDetail
           application={application} // Pass the application data to the modal
           onClose={() => setIsModalVisible(false)} // Close the modal
+          visible={isModalVisible}
+          onEditApplication={onEditApplication}
         />
       )}
     </View>
