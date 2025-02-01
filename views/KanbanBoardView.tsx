@@ -4,10 +4,13 @@ import Column from '../components/kanban/Column.tsx';
 import {useSelector, useDispatch} from 'react-redux';
 import {fetchApplications, selectApplications} from '../store/ApplicationsSlice.ts';
 import {AppDispatch} from '../store/store.ts';
+import FloatingActionButton from '../components/FloatingActionButton.tsx';
+import {useNavigation} from '@react-navigation/native';
 
 
 const KanbanBoardView = (): React.JSX.Element => {
   const dispatch:AppDispatch = useDispatch();
+  const navigation = useNavigation();
 
   const {items, columns, error, loading } = useSelector(selectApplications);
 
@@ -35,15 +38,17 @@ const KanbanBoardView = (): React.JSX.Element => {
     );
   }
 
-  const handleCardPress = (id: string) => {
-    console.log('Card pressed:', id);
-    // Show details modal or navigate to another screen
+  const handleEditApplication = (application) => {
+    console.log('Navigating to edit:', application);
+    navigation.navigate('NewApplication', { application });
   };
 
+
   return (
+    <View style={styles.container}>
+      {/* Main Scrollable Content */}
     <ScrollView
       horizontal
-      style={styles.container}
       contentContainerStyle={styles.board}
       showsHorizontalScrollIndicator={false}
     >
@@ -60,10 +65,14 @@ const KanbanBoardView = (): React.JSX.Element => {
               ...items[id],
               statusId: items[id]?.statusId, // Ensure statusId is passed
             }))}
+            onEditApplication={handleEditApplication}
           />
         );
       })}
     </ScrollView>
+      {/* Floating Action Button */}
+      <FloatingActionButton />
+    </View>
   );
 };
 
