@@ -1,79 +1,88 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Technical Documentation: Job Application Tracker
 
-# Getting Started
+## 1. Introduction
+The **Job Application Tracker** project is a mobile app designed to assist job seekers in managing and organizing their job applications. The app consolidates job application data, providing a central platform for users to track the progress of each application, visualize trends, and stay organized during their job search.
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+This document covers the mobile application component of the project, detailing the technologies used, key features, and architecture.
 
-## Step 1: Start the Metro Server
+## 2. Project Overview
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+### Purpose
+- **Simplify the job application process** by consolidating all relevant data in one place.
+- Provide users with a **clear overview** of their job-seeking progress using Kanban boards and dashboard charts.
 
-To start Metro, run the following command from the _root_ of your React Native project:
+### Scope
+- **Mobile Client**: Built using **React Native** and **TypeScript** for cross-platform development.
+- **Backend API**: Powered by an **ASP.NET Core Web API** that handles user authentication and manages job application data. The backend code can be found [here](https://github.com/eric-muganga/jobApplicationTrackerApi).
 
-```bash
-# using npm
-npm start
+### Key Features
+- **User Authentication** with JWT tokens for secure login and session management.
+- **CRUD Operations** for job applications: users can create, read, update, and delete applications.
+- **Drag-and-drop Kanban Board** to track the status of applications visually.
+- **Dashboard with charts** that display trends, such as the number of applications per month and the status distribution.
+- **Secure Token Storage** using **AsyncStorage** for JWT token persistence.
 
-# OR using Yarn
-yarn start
-```
+## 3. Technologies Used
 
-## Step 2: Start your Application
+### 3.1 Mobile Application
+- **React Native (v0.76.6)**: A cross-platform mobile framework for building iOS and Android apps with JavaScript/TypeScript.
+- **TypeScript (v5.0.4)**: A strongly-typed superset of JavaScript that improves code readability and reduces runtime errors.
+- **Redux Toolkit (@reduxjs/toolkit)**: A state management library that simplifies and standardizes state handling.
+- **React Navigation**: A navigation library used to manage screen transitions within the app.
+- **Axios**: HTTP client used to make REST API requests to the backend.
+- **React Native Chart Kit**: Used for rendering visual charts such as monthly application counts and status trends.
+- **React Native Draggable FlatList**: Implements drag-and-drop functionality for managing the Kanban board.
+- **AsyncStorage**: A mechanism for storing data, such as JWT tokens, locally on the device for offline use.
 
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
+### 3.2 Backend API (ASP.NET Core Web API)
+- **ASP.NET Core (C#)**: Provides a secure backend API for handling user authentication and managing job application data.
+- **Entity Framework & Database**: Typically uses **SQL Server** or another relational database for persistent storage.
+- **CORS Configuration**: Allows mobile app requests from the Android emulator (e.g., `http://10.0.2.2:5000`).
 
-### For Android
+## 4. Functionalities
 
-```bash
-# using npm
-npm run android
+### User Authentication
+- **Login/Logout**: User credentials are validated by the ASP.NET Core backend, and a JWT token is returned on successful authentication.
+- **JWT Token**: The token is stored in AsyncStorage and automatically included in each API request via Axios interceptors.
 
-# OR using Yarn
-yarn android
-```
+### Kanban Board
+- **Visual Columns**: The board features columns for the various stages of job applications, including **Wishlist**, **Applied**, **Interviewing**, **Offer**, and **Rejected**.
+- **Drag-and-Drop Cards**: Users can move job applications between columns to update their statuses.
+- **Status Updates**: Status changes trigger API requests to update the backend.
 
-### For iOS
+### Dashboard & Analytics
+- **Monthly Charts**: Displays a chart showing how many applications were submitted each month.
+- **Status Counts**: Displays the number of applications in each stage, providing a visual summary of user progress.
 
-```bash
-# using npm
-npm run ios
+### CRUD Operations
+- **Fetch**: Retrieves all job applications belonging to the authenticated user.
+- **Create**: Allows users to add a new job application with details such as company, job title, and application notes.
+- **Update**: Edit existing applications, including status changes.
+- **Delete**: Removes an application from the system, with an optional confirmation prompt.
 
-# OR using Yarn
-yarn ios
-```
+### Data Persistence
+- **AsyncStorage**: Securely stores JWT tokens on the device, ensuring the user stays authenticated even after closing the app.
+- **Backend Database**: A relational database (such as SQL Server) stores job application data, ensuring data consistency and sync between the mobile app and the backend.
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+## 5. Architecture & Implementation
+The app follows a modular folder structure, separating the components, API calls, and Redux store logic. The mobile app communicates with the backend API, which handles all job application data and user authentication. The Kanban board and charts are handled within the frontend, while the backend ensures data integrity and manages the user's job applications.
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+## 6. Usage & Workflow
 
-## Step 3: Modifying your App
+**Installation Steps**:
+1. Clone the repository.
+2. Install dependencies using `npm install`.
+3. Configure the backend API endpoint (if necessary).
+4. Run the app using `react-native run-android` or `react-native run-ios`.
 
-Now that you have successfully run the app, let's modify it.
+**Workflow**:
+- Users can register, log in, and begin adding job applications to the Kanban board.
+- Applications can be updated or deleted, and their status can be tracked using the dashboard and the Kanban board.
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
+## 7. Future Enhancements
+- **Push Notifications**: Integrate Firebase for interview reminders and application follow-ups.
+- **Calendar Sync**: Sync interview dates and follow-up reminders with Google Calendar or iCal.
+- **Advanced Analytics**: Provide more detailed dashboards showing success rates by company or application timelines.
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+## 8. Conclusion
+The Job Application Tracker mobile app offers a simple yet powerful way for job seekers to track their applications and visualize their job search progress. Built with React Native and TypeScript and backed by a secure ASP.NET Core Web API, the app ensures scalability and ease of use. Future enhancements will add more advanced features to further assist users in managing their job applications.
